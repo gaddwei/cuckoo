@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>  
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"      
+ "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="cn.cuckoo.homepage.dao.HomePageDAO">
+	<!-- 保存用户 -->
+	<insert id="saveHomePage"  
+		parameterType="cn.cuckoo.homepage.entity.HomeImg">
+		INSERT INTO 
+			ck_home_imgs(id,userId,imgLoc,description,creatime) 
+			values(
+			#{id},#{userId},#{imgLoc},#{description},now()
+			);
+	</insert>
+	
+	<select id="findHomePageById" resultType="cn.cuckoo.homepage.entity.HomeImg" parameterType="string">
+		SELECT 
+			id,userId,imgLoc,description,creatime,praise 
+		FROM 
+			ck_home_imgs  
+		WHERE  
+			id=#{id} 
+	</select>
+	
+	<select id="getHomeImgList" resultType="cn.cuckoo.homepage.entity.HomeImg">
+		SELECT  
+			 id,userId,imgLoc,description,creatime,praise  
+		FROM 
+			 ck_home_imgs 
+		WHERE  
+		<![CDATA[ creatime < date_sub(curdate(),interval -1 day)  ]]>
+		order by praise desc limit 0,5;
+	</select>
+	
+	<select id="getLoadmore" resultMap="toHomeCarMap" parameterType="map">
+		SELECT  
+				h.id as id,
+				h.userId as user_Id,
+				h.imgLoc as imgLoc,
+				h.description as description,
+				h.creatime as creatime,
+				h.praise as praise,
+		
+				u.id as userId,
+				u.nickname as nickname,
+				u.sex as sex,
+				u.age as age,
+				u.email as email,
+				u.motto as motto,
+				u.addr_head_ico as addr_head_ico,
+				u.addr_homepage_ico as addr_homepage_ico    
+		FROM  ck_home_imgs h ,ck_user_v u 
+		WHERE h.userid = u.id and 
+		<![CDATA[ h.creatime < date_sub(curdate(),interval -1 day) ]]> ORDER BY  h.praise desc   limit #{start},#{end} 
+	</select>
+	<resultMap id="toHomeCarMap" type="cn.cuckoo.homepage.entity.ToHomeCarBean" >
+		<id column="id" property="id"/>
+		<association property="homeImg" javaType="cn.cuckoo.homepage.entity.HomeImg">
+            <id column="id" property="id"/>
+            <result column="user_Id" property="userId"/>
+            <result column="imgLoc" property="imgLoc"/>
+            <result column="description" property="description"/>
+            <result column="creatime" property="creatime"/>
+            <result column="praise" property="praise"/>
+        </association>
+        <association property="user" javaType="cn.cuckoo.account.entity.User">
+            <id column="userId" property="id"/>
+            <result column="nickname" property="nickname"/>
+            <result column="sex" property="sex"/>
+            <result column="age" property="age"/>
+            <result column="email" property="email"/>
+            <result column="motto" property="motto"/>
+            <result column="addr_head_ico" property="addr_head_ico"/>
+            <result column="addr_homepage_ico" property="addr_homepage_ico"/>
+        </association>
+	</resultMap>
+	
+	<select id="getCountPraiseByUseridAndImgid" resultType="int" parameterType="map">
+		select COUNT(*) from ck_home_imgs_praise where userid = #{userId} and imgid=#{imgId}
+	</select>
+	
+	<insert id="savePraise" parameterType="map">
+		insert ck_home_imgs_praise(id,imgid,userId,creatime) values('${id}','${imgId}','${userId}',now());
+	</insert>
+	
+	<delete id="deletePraise" parameterType="map">
+		delete from ck_home_imgs_praise where imgid='${imgId}' and userid='${userId}' 
+	</delete>
+</mapper>
+
+
+
+
+
+
+

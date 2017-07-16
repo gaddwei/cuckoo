@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>  
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"      
+ "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="cn.cuckoo.account.dao.UserDAO">
+
+	<!-- 保存用户 -->
+	<insert id="saveUser"
+		parameterType="cn.cuckoo.account.entity.User">
+		INSERT INTO 
+			ck_user(id,nickname,sex,age,pwd,email,addr_head_ico,token,register_time) 
+			values(
+			#{id},#{nickname},#{sex},#{age},#{pwd},#{email},#{addr_head_ico},#{token},#{register_time}
+			);
+	</insert>
+	
+	<select id="findUserByEaiml" parameterType="string" resultType="cn.cuckoo.account.entity.User">
+		SELECT 
+			id,nickname,sex,age,pwd,email,token,motto,addr_head_ico,addr_homepage_ico,register_time,last_edit_time 
+		FROM 
+			ck_user 
+		WHERE email=#{email}
+	</select>
+	
+	<select id="findUserViewById" parameterType="string" resultType="cn.cuckoo.account.entity.User">
+		SELECT 
+			id,nickname,sex,age,email,motto,addr_head_ico,addr_homepage_ico 
+		FROM 
+			ck_user_v 
+		WHERE id=#{id}
+	</select>
+	
+	<!-- update user token -->
+	<update id="updateUserToken" parameterType="user">
+		UPDATE ck_user SET token=#{token}   WHERE id=#{id}  
+	</update>
+	
+	
+	<select id="checkUserTokenById" parameterType="map" resultType="int">
+		SELECT COUNT(*) FROM ck_user WHERE id=#{id} AND token=#{token} 
+	</select>
+	
+	<select id="findAttentionByUserId" parameterType="map" resultType="int">
+		select count(*) from ck_attention where uid = #{uid} and attention_id = #{attention_id} 
+	</select>
+	
+	<insert id="addAttention" parameterType="map">
+		insert into ck_attention(id,uid,attention_id) values(#{id},#{uid},#{attentionId});
+	</insert>
+	
+	<delete id="cancelAttention" parameterType="map">
+		delete from ck_attention where uid = #{uid} and attention_id = #{attentionId}   
+	</delete>
+	
+	<select id="getAttentionCount" parameterType="string" resultType="int">
+		select Count(attention_id) from ck_attention where uid = #{uid} 
+	</select>
+	<select id="getUserFans" parameterType="string" resultType="int">
+		select Count(uid) from ck_attention where attention_id = #{uid} 
+	</select>
+</mapper>
+
+
+
+
+
+
+

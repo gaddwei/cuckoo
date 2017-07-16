@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>  
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"      
+ "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="cn.cuckoo.note.dao.NoteDAO">
+	<!-- 插入游记  -->
+	<insert id="saveNote"  useGeneratedKeys="true" keyProperty="id" parameterType="note">
+		INSERT 
+			ck_note(id,userid,title,imgLoc,content,creatime,site) 
+		values(#{id},#{userId},#{title},#{imgLoc},#{content},now(),#{site});
+	</insert>
+	<!--   ###################### START ####################################-->
+	<select id="getNoteCoverDate" resultMap="noteCoverMap" parameterType="map">
+		select 
+			n.id id,
+			n.title title,
+			n.imgLoc 'imgLoc',
+			n.browse browse,
+			n.site site,
+			n.creatime creatime,
+			
+			u.id 'userId',
+			u.nickname nickname,
+			u.addr_head_ico addr_head_ico   
+			from ck_note n,ck_user_v u where n.userid= u.id 
+			and <![CDATA[ n.creatime < date_sub(curdate(),interval -1 day)  ]]>
+			 order by n.browse desc  limit #{start},#{end}
+	</select>
+	<resultMap type="cn.cuckoo.note.entity.NoteCover" id="noteCoverMap">
+		<id column="id" property="id"/>
+		<association property="note" javaType="cn.cuckoo.note.entity.Note">
+			<id column="id" property="id"/>
+			<result  column="title" property="title"/>
+			<result  column="imgLoc" property="imgLoc"/>
+			<result  column="browse" property="browse"/>
+			<result  column="site" property="site"/>
+			<result  column="creatime" property="creatime"/>
+		</association>
+		<association property="user" javaType="cn.cuckoo.account.entity.User" >
+			<id column="userId" property="id"/>
+			<result  column="nickname" property="nickname"/>
+			<result  column="addr_head_ico" property="addr_head_ico"/>
+		</association>
+		<association property="transpond" javaType="int" column="id" select="findCountTranspondByNoteId"></association>
+		<association property="comment" javaType="int" column="id" select="findCountCommentByNoteId"></association>
+		<association property="praise" javaType="int" column="id" select="findCountPraiseByNoteId"></association>
+		<association property="site" javaType="String" column="site" select="findSiteNameBySite"></association>
+	</resultMap>
+	<select id="findCountTranspondByNoteId" parameterType="string" resultType="int">
+		select count(*) from ck_note_transpond where noteid=#{noteId} 
+	</select>
+	<select id="findCountCommentByNoteId" parameterType="string" resultType="int">
+		select count(*) from ck_note_comment where noteid=#{noteId} 
+	</select>
+	<select id="findCountPraiseByNoteId" parameterType="string" resultType="int">
+		select count(*) from ck_note_praise where noteid=#{noteId} 
+	</select>
+	<select id="findSiteNameBySite" parameterType="int" resultType="string">
+		select name from district where id=#{site}  
+	</select>
+	<!--   ###################### END ####################################-->
+	
+	<select id="getNoteMapById" parameterType="string" resultMap="noteMap">
+		select 
+			n.id id,
+			n.title title,
+			n.imgLoc 'imgLoc',
+			n.content content,
+			n.browse browse,
+			n.site site,
+			n.creatime creatime,
+			
+			u.id 'userId'  
+			from (select *from ck_note where id=#{id}) n,ck_user_v u where n.userid= u.id 
+	</select>
+	
+	<resultMap type="cn.cuckoo.note.entity.NoteMap" id="noteMap">
+		<id column="id" property="id"/>
+		<association property="user" javaType="user" column="userId" select="cn.cuckoo.account.dao.UserDAO.findUserViewById"></association>
+		<association property="note" javaType="cn.cuckoo.note.entity.Note" >
+			<id column="id" property="id"/>
+			<result  column="title" property="title"/>
+			<result  column="imgLoc" property="imgLoc"/>
+			<result  column="browse" property="browse"/>
+			<result  column="content" property="content"/>
+			<result  column="site" property="site"/>
+			<result  column="creatime" property="creatime"/>
+		</association>
+		<collection property="transponds" column="id" javaType="list" ofType="cn.cuckoo.note.entity.NoteUserTranspond" select="getUserTranspondsByNoteId"></collection>
+		<collection property="comments" column="id" javaType="list" ofType="cn.cuckoo.note.entity.NoteUserComment" select="getUserCommentsByNoteId"></collection>
+		<collection property="praises" column="id" javaType="list" ofType="cn.cuckoo.note.entity.NotePraise" select="getPraisesByNoteId"></collection>
+	</resultMap>
+	<select id="getUserTranspondsByNoteId" parameterType="string" resultMap="transpondMap">
+		select 
+			c.id id,
+			c.comment comment,
+			c.creatime creatime,
+		
+			u.id 'userId',
+			u.nickname nickname,
+			u.addr_head_ico addr_head_ico
+		from 
+			(select *from ck_note_transpond where noteid =  #{noteId} ) c,
+			ck_user_v u where c.pid=u.id  ORDER BY c.creatime DESC 
+	</select>
+	<select id="getUserCommentsByNoteId" parameterType="string" resultMap="commentMap">
+		select 
+			c.id id,
+			c.comment comment,
+			c.creatime creatime,
+		
+			u.id 'userId',
+			u.nickname nickname,
+			u.addr_head_ico addr_head_ico
+		from 
+			(select *from ck_note_comment where noteid =  #{noteId} ) c,
+			ck_user_v u where c.userid=u.id  ORDER BY c.creatime DESC 
+	</select>
+	<select id="getPraisesByNoteId" parameterType="string" resultType="cn.cuckoo.note.entity.NotePraise">
+		select 
+			id,
+			noteid 'noteId',
+			pid ,
+			creatime
+			from ck_note_praise where noteid = #{noteId}
+	</select>
+	
+	<resultMap type="cn.cuckoo.note.entity.NoteUserTranspond" id="transpondMap">
+		<id column="id" property="id"/>
+		<association property="user" javaType="user">
+			<id column="userId" property="id"/>
+			<result column="nickname" property="nickname"/>
+			<result column="addr_head_ico" property="addr_head_ico"/>
+		</association>
+		<association property="transpond" javaType="cn.cuckoo.note.entity.NoteTranspond">
+			<id column="id" property="id"/>
+			<result column="comment" property="comment"/>
+			<result column="creatime" property="creatime"/>
+		</association>
+	</resultMap>
+	<resultMap type="cn.cuckoo.note.entity.NoteUserComment" id="commentMap">
+		<id column="id" property="id"/>
+		<association property="user" javaType="user">
+			<id column="userId" property="id"/>
+			<result column="nickname" property="nickname"/>
+			<result column="addr_head_ico" property="addr_head_ico"/>
+		</association>
+		<association property="comment" javaType="cn.cuckoo.note.entity.NoteComment">
+			<id column="id" property="id"/>
+			<result column="comment" property="comment"/>
+			<result column="creatime" property="creatime"/>
+		</association>
+	</resultMap>
+	<!-- ############## END ################ -->
+	<update id="updateNoteBrowse" parameterType="string">
+		update  ck_note set browse = browse+1 where id = #{id}  
+	</update>
+	
+	<insert id="saveComment" parameterType="cn.cuckoo.note.entity.NoteComment">
+		INSERT ck_note_comment(id,userid,noteid,comment,creatime) values(#{id},#{userId},#{noteId},#{comment},now());
+	</insert>
+	
+	<delete id="delComment" parameterType="cn.cuckoo.note.entity.NoteComment">
+		delete from ck_note_comment where id = #{id} and userid= #{userId} 
+	</delete>
+	
+	<insert id="saveTranspond" parameterType="cn.cuckoo.note.entity.NoteTranspond">
+		insert  ck_note_transpond(id,pid,noteid,comment,creatime) values(#{id},#{pid},#{noteid},#{comment},now()) 
+	</insert>
+	
+	<select id="getCircleNote" resultType="cn.cuckoo.note.entity.CircleNoteBean" parameterType="map">
+		select a.* from
+			(select a.*,u.nickname notenickname from(
+				select n.id noteid,a.id userid,
+				   a.nickname,a.addr_head_ico ico,t.comment ,n.content,t.creatime,n.userid noteuserid from(
+					select u.* from(
+							select attention_id from ck_attention where uid =#{userid} 
+							union select #{userid} attention_id from dual )a ,ck_user_v u 
+							where a.attention_id = u.id )a,ck_note_transpond t  ,ck_note n 
+							where a.id = t.pid and t.noteid = n.id  )a,ck_user_v u where a.noteuserid = u.id 
+			union  
+			select n.id noteid,u.id userid,u.nickname,u.addr_head_ico ico,'' comment,n.content,n.creatime ,'' noteuserid,'' notenickname from(
+							select attention_id from ck_attention where uid = #{userid} 
+							union select #{userid} attention_id from dual )a ,ck_user_v u ,ck_note n
+							where a.attention_id = u.id and a.attention_id=n.userid )a order by creatime desc limit #{start},#{end} 
+	</select>
+	
+	<select id="getTranspondCount" parameterType="string" resultType="int">
+		select count(*) from ck_note_transpond where noteid = #{noteId} 
+	</select>
+	
+	<select id="getNoteTranspond" parameterType="string" resultType="cn.cuckoo.note.entity.TransmitNoteTranpondBean">
+		select  u.addr_head_ico ioc,u.nickname, a.comment,a.creatime from(
+				select  t.pid ,t.comment ,t.creatime from ck_note_transpond t where noteid = #{noteId} 
+			)a,ck_user_v u where a.pid = u.id order by a.creatime desc limit 0,10 
+	</select>
+	
+	<select id="getPraiseByUidAndNoteId" resultType="int" parameterType="map">
+		select COUNT(*) FROM ck_note_praise where noteid=#{noteId}  and pid = #{userId} 
+	</select>
+	
+	<delete id="delPraise" parameterType="map">
+		delete from  ck_note_praise where noteid=#{noteId} and pid =#{userId} 
+	</delete>
+	<insert id="addPraise" parameterType="map">
+		insert into ck_note_praise(id,noteid,pid,creatime) values(#{id},#{noteId},#{userId},now());
+	</insert>
+	
+</mapper>
